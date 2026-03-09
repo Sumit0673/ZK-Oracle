@@ -1,0 +1,27 @@
+# ─── Python ───
+agent/venv/
+agent/__pycache__/
+agent/.pytest_cache/
+*.pyc
+.env
+
+# ─── Rust ───
+circuits/target/
+circuits/host/target/
+circuits/methods/target/
+
+# ─── Solidity ───
+contracts/out/
+contracts/cache/
+contracts/lib/
+contracts/broadcast/
+
+# ─── IDE ───
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
