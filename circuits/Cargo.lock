@@ -1322,7 +1322,6 @@ version = "0.1.0"
 dependencies = [
  "risc0-zkvm",
  "serde",
- "serde_json",
  "sha2",
 ]
 
@@ -3021,6 +3020,7 @@ name = "zk-oracle-host"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "bincode",
  "clap",
  "hex",
  "methods",

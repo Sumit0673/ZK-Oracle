@@ -11,7 +11,6 @@
 use anyhow::Result;
 use clap::Parser;
 use risc0_zkvm::{default_prover, ExecutorEnv};
-use serde_json;
 use std::fs;
 
 // Import the guest program's ELF binary and image ID
@@ -48,15 +47,15 @@ fn main() -> Result<()> {
     let receipt = prover.prove(env, ORACLE_GUEST_ELF)?;
 
     // Verify the receipt locally (optional sanity check)
-    receipt.verify(ORACLE_GUEST_ID)?;
+    receipt.receipt.verify(ORACLE_GUEST_ID)?;
     println!("✅ Proof verified locally!");
 
     // Extract the public journal (committed values from the guest)
-    let journal_bytes = receipt.journal.bytes.clone();
+    let journal_bytes = receipt.receipt.journal.bytes.clone();
     println!("📋 Journal (public output): {}", hex::encode(&journal_bytes));
 
     // Serialize the receipt (proof) for on-chain submission
-    let proof_bytes = bincode::serialize(&receipt)?;
+    let proof_bytes = bincode::serialize(&receipt.receipt)?;
     println!("📦 Proof size: {} bytes", proof_bytes.len());
 
     // Save proof to file for the integration layer to pick up
