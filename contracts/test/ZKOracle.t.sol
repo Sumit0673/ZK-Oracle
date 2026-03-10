@@ -21,15 +21,13 @@ contract ZKOracleTest is Test {
         consumer = new OracleConsumer(address(oracle), 50_000 * 1e8); // $50k threshold
     }
 
-    // ─── Submission Tests ────────────────────────────────────────────
-
     function test_submitData() public {
         bytes memory fakeProof = hex"deadbeef";
 
         oracle.submitData(
             "bitcoin",
-            67_000 * 1e8,  // $67,000
-            65_000 * 1e8,  // $65,000 moving average
+            67_000 * 1e8,
+            65_000 * 1e8,
             block.timestamp,
             keccak256("test-data"),
             fakeProof
@@ -43,12 +41,26 @@ contract ZKOracleTest is Test {
 
     function test_revertOnEmptyAsset() public {
         vm.expectRevert("ZKOracle: empty asset");
-        oracle.submitData("", 100, 100, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "",
+            100,
+            100,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
     }
 
     function test_revertOnZeroPrice() public {
         vm.expectRevert("ZKOracle: zero price");
-        oracle.submitData("btc", 0, 100, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "btc",
+            0,
+            100,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
     }
 
     function test_revertOnEmptyProof() public {
@@ -59,18 +71,29 @@ contract ZKOracleTest is Test {
     function test_revertUntrustedSubmitter() public {
         vm.prank(randomUser);
         vm.expectRevert("ZKOracle: not trusted submitter");
-        oracle.submitData("btc", 100, 100, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "btc",
+            100,
+            100,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
     }
-
-    // ─── Access Control Tests ────────────────────────────────────────
 
     function test_addTrustedSubmitter() public {
         oracle.setTrustedSubmitter(submitter, true);
         assertTrue(oracle.trustedSubmitters(submitter));
 
-        // Submitter can now submit
         vm.prank(submitter);
-        oracle.submitData("eth", 3_500 * 1e8, 3_400 * 1e8, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "eth",
+            3_500 * 1e8,
+            3_400 * 1e8,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
     }
 
     function test_removeTrustedSubmitter() public {
@@ -79,13 +102,25 @@ contract ZKOracleTest is Test {
 
         vm.prank(submitter);
         vm.expectRevert("ZKOracle: not trusted submitter");
-        oracle.submitData("eth", 100, 100, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "eth",
+            100,
+            100,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
     }
 
-    // ─── Consumer Tests ──────────────────────────────────────────────
-
     function test_consumerCheckPrice() public {
-        oracle.submitData("bitcoin", 67_000 * 1e8, 65_000 * 1e8, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "bitcoin",
+            67_000 * 1e8,
+            65_000 * 1e8,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
 
         (bool isAbove, uint256 price) = consumer.checkPrice("bitcoin");
         assertTrue(isAbove);
@@ -93,22 +128,47 @@ contract ZKOracleTest is Test {
     }
 
     function test_consumerBelowThreshold() public {
-        oracle.submitData("bitcoin", 40_000 * 1e8, 39_000 * 1e8, block.timestamp, keccak256("x"), hex"aa");
+        oracle.submitData(
+            "bitcoin",
+            40_000 * 1e8,
+            39_000 * 1e8,
+            block.timestamp,
+            keccak256("x"),
+            hex"aa"
+        );
 
         (bool isAbove, ) = consumer.checkPrice("bitcoin");
         assertFalse(isAbove);
     }
 
-    // ─── History Tests ───────────────────────────────────────────────
-
     function test_multipleSubmissions() public {
-        oracle.submitData("btc", 100, 90, block.timestamp, keccak256("1"), hex"aa");
-        oracle.submitData("btc", 200, 150, block.timestamp, keccak256("2"), hex"bb");
-        oracle.submitData("eth", 300, 280, block.timestamp, keccak256("3"), hex"cc");
+        oracle.submitData(
+            "btc",
+            100,
+            90,
+            block.timestamp,
+            keccak256("1"),
+            hex"aa"
+        );
+        oracle.submitData(
+            "btc",
+            200,
+            150,
+            block.timestamp,
+            keccak256("2"),
+            hex"bb"
+        );
+        oracle.submitData(
+            "eth",
+            300,
+            280,
+            block.timestamp,
+            keccak256("3"),
+            hex"cc"
+        );
 
         assertEq(oracle.submissionCount(), 3);
 
-        // Latest BTC should be the second submission
         (uint256 btcPrice, ) = oracle.getLatestPrice("btc");
         assertEq(btcPrice, 200);
     }

@@ -108,7 +108,6 @@ make contracts-deploy  # Terminal 2: deploy contracts
 make run            # Terminal 3: run full pipeline
 ```
 
-## 📚 Learning Path
 
 1. **Phase 1**: Project setup (you are here!)
 2. **Phase 2**: Build the LangChain AI Agent
@@ -118,6 +117,3 @@ make run            # Terminal 3: run full pipeline
 6. **Phase 6**: Testing & verification
 7. **Phase 7**: Documentation
 
-## 📄 License
-
-MIT

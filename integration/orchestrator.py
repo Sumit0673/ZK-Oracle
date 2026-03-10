@@ -1,22 +1,9 @@
-"""
-ZK Oracle — Orchestrator
-==========================
-Runs the full end-to-end pipeline:
-  AI Agent → ZK Prover → Smart Contract Submission
-
-LEARNING NOTES:
-- This ties all three components together
-- Uses web3.py to interact with the Ethereum smart contract
-- In production, this would run on a schedule (cron, Kubernetes, etc.)
-"""
-
 import json
 import sys
 import yaml
 from pathlib import Path
 from web3 import Web3
 
-# Add the agent directory to the path
 sys.path.insert(0, str(Path(__file__).parent.parent / "agent"))
 
 from agent import run_oracle
@@ -25,7 +12,6 @@ from analyzer import OracleReport
 
 
 def load_config() -> dict:
-    """Load configuration from config.yaml"""
     config_path = Path(__file__).parent / "config.yaml"
     with open(config_path) as f:
         return yaml.safe_load(f)
@@ -38,27 +24,12 @@ def submit_to_contract(
     proof_bytes: bytes,
     account: str,
 ) -> dict:
-    """
-    Submit verified oracle data to the smart contract.
 
-    Args:
-        w3: Web3 instance
-        contract: The ZKOracle contract instance
-        report: The verified OracleReport
-        proof_bytes: The ZK proof bytes
-        account: The submitter's address
-
-    Returns:
-        Transaction receipt
-    """
-    # Scale price to uint256 (multiply by 1e8 for precision)
     price_scaled = int(report.price_usd * 1e8)
     ma_scaled = int(report.moving_average * 1e8)
 
-    # Hash the report data
     data_hash = w3.keccak(text=report.model_dump_json())
 
-    # Build the transaction
     tx = contract.functions.submitData(
         report.asset,
         price_scaled,
@@ -72,7 +43,6 @@ def submit_to_contract(
         "gas": 500_000,
     })
 
-    # Sign and send (using Anvil's default private key)
     signed = w3.eth.account.sign_transaction(
         tx, private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
     )
@@ -83,23 +53,15 @@ def submit_to_contract(
 
 
 def run_pipeline(asset: str = "bitcoin", dry_run: bool = False):
-    """
-    Execute the full oracle pipeline.
 
-    Args:
-        asset: Cryptocurrency to process
-        dry_run: If True, skip the on-chain submission
-    """
     print("=" * 60)
     print(f"🚀 ZK Oracle Pipeline — {asset.upper()}")
     print("=" * 60)
 
-    # ── Step 1: Run the AI Agent ──
     print("\n📡 Step 1: Running AI Agent...")
     report = run_oracle(asset)
     print(f"   ✅ Got report: {report.asset} @ ${report.price_usd:,.2f}")
 
-    # ── Step 2: Generate ZK Proof ──
     print("\n🔐 Step 2: Generating ZK Proof...")
     proof_result = generate_proof(report)
 
@@ -117,7 +79,6 @@ def run_pipeline(asset: str = "bitcoin", dry_run: bool = False):
         print(f"   Report: {report.model_dump_json(indent=2)}")
         return
 
-    # ── Step 3: Submit to Smart Contract ──
     print("\n⛓️  Step 3: Submitting to Smart Contract...")
 
     try:
@@ -129,7 +90,6 @@ def run_pipeline(asset: str = "bitcoin", dry_run: bool = False):
             print("   ℹ️  Start Anvil with: anvil")
             return
 
-        # Load the contract ABI
         abi_path = (
             Path(__file__).parent.parent
             / "contracts" / "out" / "ZKOracle.sol" / "ZKOracle.json"

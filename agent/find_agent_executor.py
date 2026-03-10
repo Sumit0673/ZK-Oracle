@@ -1,7 +1,6 @@
 import os
 import sys
 
-# Search in the current venv's site-packages
 site_packages = [p for p in sys.path if 'site-packages' in p]
 
 if not site_packages:
@@ -30,7 +29,6 @@ for root, dirs, files in os.walk(target):
 if found:
     print("\nResults:")
     for name, f in found:
-        # Convert absolute path to a relative import-like string
         rel = os.path.relpath(f, target)
         module = rel.replace('.py', '').replace('/', '.')
         if module.endswith('.__init__'):

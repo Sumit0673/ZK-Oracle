@@ -11,14 +11,12 @@ import os
 import json
 import pytest
 
-# Add parent directory to path
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_fetcher import fetch_price, fetch_price_history
 from analyzer import compute_moving_average, create_oracle_report, OracleReport
 
-
-# ─── Step 1: Test Data Fetcher ───────────────────────────────────────
 
 class TestDataFetcher:
     """Tests for the CoinGecko data fetching module."""
@@ -62,7 +60,6 @@ class TestDataFetcher:
         print(f"  ✅ Got {len(result['prices'])} price points")
 
 
-# ─── Step 2: Test Analyzer ───────────────────────────────────────────
 
 class TestAnalyzer:
     """Tests for the data analysis module."""
@@ -130,7 +127,6 @@ class TestAnalyzer:
         print(f"  ✅ JSON serialization works ({len(json_str)} bytes)")
 
 
-# ─── Step 3: Test Live Pipeline (Data Fetcher + Analyzer) ────────────
 
 class TestLivePipeline:
     """Integration tests using live CoinGecko data."""
@@ -155,7 +151,6 @@ class TestLivePipeline:
         print(f"     Source:   {report.source}")
 
 
-# ─── Run directly ────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     print("=" * 60)

@@ -3,7 +3,7 @@ agent/venv/
 agent/__pycache__/
 agent/.pytest_cache/
 *.pyc
-.env
+**/.env
 
 # ─── Rust ───
 circuits/target/

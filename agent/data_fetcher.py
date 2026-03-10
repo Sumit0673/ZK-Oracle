@@ -1,47 +1,22 @@
-"""
-ZK Oracle — Data Fetcher
-=========================
-Fetches real-time cryptocurrency data from the CoinGecko free API.
-
-This module is used as a LangChain "tool" — the AI agent can call it
-to get price data for any cryptocurrency.
-
-LEARNING NOTES:
-- CoinGecko free API: No API key needed, rate limited to ~10 req/min
-- We return structured data (dict) so it's easy to serialize for ZK
-"""
-
 import requests
 import urllib3
 from datetime import datetime, timezone
 
 
-# CoinGecko free API base URL
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 
-# Set to False ONLY if you have SSL certificate issues (e.g., local issuer errors)
 VERIFY_SSL = False
 
 if not VERIFY_SSL:
     urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# Common headers to avoid 403 Forbidden errors
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
 }
 
 
 def fetch_price(asset: str = "bitcoin", currency: str = "usd") -> dict:
-    """
-    Fetch the current price of a cryptocurrency from CoinGecko.
 
-    Args:
-        asset: The cryptocurrency ID (e.g., "bitcoin", "ethereum")
-        currency: The fiat currency to price in (e.g., "usd", "eur")
-
-    Returns:
-        dict with keys: asset, price, currency, timestamp, source
-    """
     url = f"{COINGECKO_BASE}/simple/price"
     params = {
         "ids": asset,
@@ -85,16 +60,6 @@ def fetch_price(asset: str = "bitcoin", currency: str = "usd") -> dict:
 
 
 def fetch_price_history(asset: str = "bitcoin", days: int = 7) -> dict:
-    """
-    Fetch price history for computing moving averages.
-
-    Args:
-        asset: The cryptocurrency ID
-        days: Number of days of history (1, 7, 14, 30, 90, 180, 365)
-
-    Returns:
-        dict with keys: asset, prices (list of [timestamp, price]), days
-    """
     url = f"{COINGECKO_BASE}/coins/{asset}/market_chart"
     params = {
         "vs_currency": "usd",
@@ -113,13 +78,12 @@ def fetch_price_history(asset: str = "bitcoin", days: int = 7) -> dict:
 
     return {
         "asset": asset,
-        "prices": data["prices"],  # List of [unix_ms, price]
+        "prices": data["prices"],
         "days": days,
     }
 
 
 if __name__ == "__main__":
-    # Quick test
     print("Fetching Bitcoin price...")
     result = fetch_price("bitcoin")
     print(f"  Price: ${result['price']:,.2f}")

@@ -10,11 +10,9 @@ contract Deploy is Script {
     function run() external {
         vm.startBroadcast();
 
-        // Deploy the oracle
         ZKOracle oracle = new ZKOracle();
         console.log("ZKOracle deployed to:", address(oracle));
 
-        // Deploy a consumer with $50,000 threshold (scaled by 1e8)
         OracleConsumer consumer = new OracleConsumer(
             address(oracle),
             50_000 * 1e8

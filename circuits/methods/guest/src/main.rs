@@ -11,7 +11,11 @@
 // - Any Rust code you write here is automatically "proved"
 
 #![no_main]
+#![no_std]
 
+extern crate alloc;
+
+use alloc::string::String;
 use risc0_zkvm::guest::env;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -52,9 +56,7 @@ struct OracleCommitment {
 
 fn main() {
     // ── Step 1: Read private input from the host ──
-    let oracle_json: String = env::read();
-    let report: OracleReport = serde_json::from_str(&oracle_json)
-        .expect("Failed to parse oracle data");
+    let report: OracleReport = env::read();
 
     // ── Step 2: Validate the data ──
     // These checks run inside the zkVM, so they're "proved"
@@ -72,8 +74,14 @@ fn main() {
     );
 
     // ── Step 4: Hash the full report for integrity ──
+    // Hash the key fields for integrity
     let mut hasher = Sha256::new();
-    hasher.update(oracle_json.as_bytes());
+    hasher.update(report.asset.as_bytes());
+    hasher.update(&report.price_usd.to_le_bytes());
+    hasher.update(&report.moving_average.to_le_bytes());
+    hasher.update(report.source.as_bytes());
+    hasher.update(&report.timestamp.to_le_bytes());
+    hasher.update(report.analysis.as_bytes());
     let data_hash: [u8; 32] = hasher.finalize().into();
 
     // ── Step 5: Commit public outputs to the journal ──

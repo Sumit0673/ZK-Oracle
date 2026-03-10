@@ -12,10 +12,10 @@ ethereum:
 
 agent:
   # Cryptocurrency to monitor
-  default_asset: "bitcoin"
+  default_asset: "solana"
 
   # LLM model for the agent
-  model: "gpt-4o-mini"
+  model: "llama3.1"
 
   # How often to fetch data (in seconds)
   fetch_interval: 300
