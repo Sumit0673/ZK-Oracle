@@ -15,44 +15,13 @@
 
 extern crate alloc;
 
-use alloc::string::String;
 use risc0_zkvm::guest::env;
-use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+// Import the shared data structures from the core crate
+use zk_oracle_core::{OracleReport, OracleCommitment};
+
 risc0_zkvm::guest::entry!(main);
-
-/// The oracle data structure that the AI agent produces
-#[derive(Debug, Serialize, Deserialize)]
-struct OracleReport {
-    /// Asset name (e.g., "bitcoin")
-    asset: String,
-    /// Current price in USD
-    price_usd: f64,
-    /// Simple moving average (computed by the agent)
-    moving_average: f64,
-    /// Data source URL
-    source: String,
-    /// UNIX timestamp of when the data was fetched
-    timestamp: u64,
-    /// AI agent's analysis summary
-    analysis: String,
-}
-
-/// The public output committed to the proof's journal
-#[derive(Debug, Serialize, Deserialize)]
-struct OracleCommitment {
-    /// Hash of the full oracle report (proves data integrity)
-    data_hash: [u8; 32],
-    /// The verified price (this becomes publicly available)
-    price_usd: f64,
-    /// The verified moving average
-    moving_average: f64,
-    /// Asset name
-    asset: String,
-    /// Timestamp
-    timestamp: u64,
-}
 
 fn main() {
     // ── Step 1: Read private input from the host ──

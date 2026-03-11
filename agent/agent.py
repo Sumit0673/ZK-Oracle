@@ -148,13 +148,22 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
 
     output = result["output"]
     try:
+        # Try to parse the agent's output as an OracleReport first
         report = OracleReport.model_validate_json(output)
     except Exception:
-        report = create_oracle_report(
-            fetch_price(asset),
-            fetch_price_history(asset),
-            analysis_text=output
-        )
+        print("⚠️  Agent did not return a structured report, falling back to manual fetch...")
+        try:
+            report = create_oracle_report(
+                fetch_price(asset),
+                fetch_price_history(asset),
+                analysis_text=output
+            )
+        except Exception as e:
+            if "429" in str(e):
+                print("❌ Error: Rate limited by CoinGecko. Please try again in 1-2 minutes.")
+            else:
+                print(f"❌ Error fetching data: {e}")
+            sys.exit(1)
 
     return report
 

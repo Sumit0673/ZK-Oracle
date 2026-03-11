@@ -1323,6 +1323,7 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "sha2",
+ "zk-oracle-core",
 ]
 
 [[package]]
@@ -3016,6 +3017,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zk-oracle-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "zk-oracle-host"
 version = "0.1.0"
 dependencies = [
@@ -3027,6 +3035,7 @@ dependencies = [
  "risc0-zkvm",
  "serde",
  "serde_json",
+ "zk-oracle-core",
 ]
 
 [[package]]
