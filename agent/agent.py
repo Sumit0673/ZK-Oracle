@@ -1,4 +1,5 @@
 import json
+import sys
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 try:
@@ -113,6 +114,16 @@ Be precise and factual. Your output will be cryptographically verified."""),
     )
 
 
+def check_ollama_connectivity(base_url: str = "http://localhost:11434") -> bool:
+    """Check if the Ollama service is reachable."""
+    import httpx
+    try:
+        response = httpx.get(f"{base_url}/api/tags")
+        return response.status_code == 200
+    except Exception:
+        return False
+
+
 def run_oracle(asset: str = "bitcoin") -> OracleReport:
     """
     Run the full oracle agent pipeline for a given asset.
@@ -123,6 +134,11 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
     Returns:
         OracleReport with verified data
     """
+    if not check_ollama_connectivity():
+        print("❌ Error: Cannot connect to Ollama service.")
+        print("ℹ️  Make sure Ollama is running: run 'ollama serve' in a separate terminal.")
+        sys.exit(1)
+
     agent = create_oracle_agent()
 
     result = agent.invoke({
