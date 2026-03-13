@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ZK-Oracle | Secure AI Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <div class="glass-card">
+        <header>
+          <h1>ZK-Oracle</h1>
+          <p class="subtitle">Verifiable AI Intelligence for the Multichain Future</p>
+        </header>
+
+        <main>
+          <div class="controls">
+            <input type="text" id="assetInput" placeholder="Enter asset (e.g. bitcoin, ethereum, solana)..." value="bitcoin" />
+            <button id="runBtn">Generate Secure Report</button>
+          </div>
+
+          <div class="stepper">
+            <div class="step" id="step1">
+              <div class="step-icon" data-lucide="BrainCircuit"></div>
+              <div class="step-label">AI Analysis</div>
+            </div>
+            <div class="step" id="step2">
+              <div class="step-icon" data-lucide="ShieldCheck"></div>
+              <div class="step-label">ZK Proving</div>
+            </div>
+            <div class="step" id="step3">
+              <div class="step-icon" data-lucide="Link"></div>
+              <div class="step-label">On-Chain</div>
+            </div>
+          </div>
+
+          <div class="status-container" id="statusContainer" style="display: none;">
+            <div class="progress-info">
+              <span class="status-message" id="statusMsg">Initializing pipeline...</span>
+              <span class="percentage-text" id="percentageText">0%</span>
+            </div>
+            <div class="progress-bar-container">
+              <div class="progress-bar" id="progressBar"></div>
+            </div>
+            
+            <div class="terminal-logs" id="terminalLogs">
+              <div class="log-line system">Waiting for user interaction...</div>
+            </div>
+          </div>
+
+          <div id="resultArea"></div>
+        </main>
+      </div>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

@@ -148,7 +148,6 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
 
     output = result["output"]
     try:
-        # Try to parse the agent's output as an OracleReport first
         report = OracleReport.model_validate_json(output)
     except Exception:
         print("⚠️  Agent did not return a structured report, falling back to manual fetch...")
