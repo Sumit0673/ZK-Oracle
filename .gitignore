@@ -12,6 +12,8 @@ circuits/methods/target/
 
 # ─── Solidity ───
 contracts/out/
+!contracts/out/ZKOracle.sol/ZKOracle.json
+!contracts/out/OracleConsumer.sol/OracleConsumer.json
 contracts/cache/
 contracts/lib/
 contracts/broadcast/
