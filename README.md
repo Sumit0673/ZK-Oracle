@@ -1,4 +1,5 @@
-# 🔮 ZK-Verified AI Oracle
+# 🔮 ZK-Verified AI Oracle: https://zk-oracle-b1r7.vercel.app/
+
 
 > An on-chain oracle that uses **AI agents** to fetch & analyze off-chain data, then submits **zero-knowledge proofs** to verify the AI's computation was done correctly.
 
