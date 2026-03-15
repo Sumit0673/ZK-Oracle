@@ -78,16 +78,22 @@ def run_zk_pipeline(asset: str):
             
         # Step 3: On-chain submission
         state.status = "submitting"
-        log("Connecting to Ethereum (Anvil) via Web3.py...", 80)
         
         config = load_config()
+        rpc_url = config["ethereum"]["rpc_url"]
+        network_name = "Sepolia" if "sepolia" in rpc_url.lower() else "Anvil"
+        
+        log(f"Connecting to Ethereum ({network_name}) via Web3.py...", 80)
+        
         abi_path = Path(__file__).parent.parent / "contracts" / "out" / "ZKOracle.sol" / "ZKOracle.json"
         
         if not abi_path.exists():
-             raise Exception(f"Contract ABI not found at {abi_path}. Run forge build.")
+             error_msg = f"Contract ABI not found at {abi_path}. Ensure you have added the JSON files to Git (git add -f contracts/out/ZKOracle.sol/ZKOracle.json)."
+             log(f"❌ {error_msg}")
+             raise Exception(error_msg)
              
-        w3 = Web3(Web3.HTTPProvider(config["ethereum"]["rpc_url"]))
-        log("Connected to Anvil. Submitting transaction...", 85)
+        w3 = Web3(Web3.HTTPProvider(rpc_url))
+        log(f"Connected to {network_name}. Submitting transaction...", 85)
         
         with open(abi_path) as f:
             contract_abi = json.load(f)["abi"]
