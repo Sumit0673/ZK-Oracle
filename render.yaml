@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: zk-oracle-backend
+    env: docker
+    plan: free # Use Render's free tier
+    region: oregon # or any region
+    dockerfilePath: Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: GROQ_API_KEY
+        sync: false # Set manually in Render dashboard
+      - key: ETH_PRIVATE_KEY
+        sync: false # Set manually in Render dashboard
+      - key: ETH_RPC_URL
+        value: https://eth-sepolia.g.alchemy.com/v2/d4dOfOacN1tGTMCSifCPnfdztc6ZBprs

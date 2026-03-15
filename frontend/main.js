@@ -17,7 +17,10 @@ function updateIcons() {
 
 updateIcons()
 
-const API_BASE = 'http://localhost:8000'
+// Point to Render backend when deployed, otherwise localhost
+const API_BASE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+  ? 'http://localhost:8000'
+  : 'https://zk-oracle-backend.onrender.com' // Placeholder for Render deployment
 
 const runBtn = document.querySelector('#runBtn')
 const assetInput = document.querySelector('#assetInput')

@@ -17,6 +17,8 @@ def load_config() -> dict:
         return yaml.safe_load(f)
 
 
+import os
+
 def submit_to_contract(
     w3: Web3,
     contract,
@@ -34,19 +36,45 @@ def submit_to_contract(
     # This drops calldata from 243KB → 32 bytes, cutting gas from ~9.7M to ~100K.
     proof_hash = w3.keccak(primitive=proof_bytes)
 
-    tx_hash = contract.functions.submitData(
-        report.asset,
-        price_scaled,
-        ma_scaled,
-        report.timestamp,
-        data_hash,
-        proof_hash,
-    ).transact({
-        "from": account,
-        "gas": 300_000,  # plenty for a simple storage call with 32-byte hash
-    })
+    private_key = os.getenv("ETH_PRIVATE_KEY")
 
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+    if private_key:
+        # Manual signing for testnets/production
+        nonce = w3.eth.get_transaction_count(account)
+        gas_price = w3.eth.gas_price
+        
+        tx = contract.functions.submitData(
+            report.asset,
+            price_scaled,
+            ma_scaled,
+            report.timestamp,
+            data_hash,
+            proof_hash,
+        ).build_transaction({
+            "from": account,
+            "nonce": nonce,
+            "gas": 300_000,
+            "gasPrice": gas_price,
+            "chainId": w3.eth.chain_id
+        })
+        
+        signed_tx = w3.eth.account.sign_transaction(tx, private_key=private_key)
+        tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
+    else:
+        # Development mode (Anvil unlocked accounts)
+        tx_hash = contract.functions.submitData(
+            report.asset,
+            price_scaled,
+            ma_scaled,
+            report.timestamp,
+            data_hash,
+            proof_hash,
+        ).transact({
+            "from": account,
+            "gas": 300_000,
+        })
+
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=120)  # Longer timeout for Sepolia
     return receipt
 
 
