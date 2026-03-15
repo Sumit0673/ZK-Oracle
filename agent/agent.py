@@ -2,6 +2,8 @@ import json
 import sys
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
+from langchain_groq import ChatGroq
+import os
 try:
     from langchain.agents import AgentExecutor, create_tool_calling_agent
 except ImportError:
@@ -83,7 +85,18 @@ def generate_oracle_report(asset: str = "bitcoin", analysis: str = "") -> str:
 def create_oracle_agent() -> AgentExecutor:
     """Create and return the LangChain oracle agent."""
     # The LLM (brain of the agent)
-    llm = ChatOllama(model="llama3.1", temperature=0)
+    # Prioritize Groq for production/cloud deployment
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        print("💡 Using Groq API (Cloud)...")
+        llm = ChatGroq(
+            model_name="llama-3.1-8b-instant", 
+            temperature=0,
+            groq_api_key=groq_api_key
+        )
+    else:
+        print("💡 Using Ollama (Local)...")
+        llm = ChatOllama(model="llama3.1", temperature=0)
 
     tools = [get_crypto_price, get_price_history, generate_oracle_report]
 
@@ -114,11 +127,17 @@ Be precise and factual. Your output will be cryptographically verified."""),
     )
 
 
-def check_ollama_connectivity(base_url: str = "http://localhost:11434") -> bool:
-    """Check if the Ollama service is reachable."""
+def check_llm_connectivity() -> bool:
+    """Check if the configured LLM provider is available."""
+    groq_api_key = os.getenv("GROQ_API_KEY")
+    if groq_api_key:
+        # Simple key check for Groq
+        return len(groq_api_key) > 10
+    
+    # Fallback to local Ollama check
     import httpx
     try:
-        response = httpx.get(f"{base_url}/api/tags")
+        response = httpx.get("http://localhost:11434/api/tags")
         return response.status_code == 200
     except Exception:
         return False
@@ -134,10 +153,15 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
     Returns:
         OracleReport with verified data
     """
-    if not check_ollama_connectivity():
-        print("❌ Error: Cannot connect to Ollama service.")
-        print("ℹ️  Make sure Ollama is running: run 'ollama serve' in a separate terminal.")
-        sys.exit(1)
+    if not check_llm_connectivity():
+        groq_api_key = os.getenv("GROQ_API_KEY")
+        if groq_api_key:
+            print("❌ Error: Groq API key is invalid or not working.")
+            raise RuntimeError("Groq API key is invalid or not working.")
+        else:
+            print("❌ Error: Cannot connect to Ollama service.")
+            print("ℹ️  Make sure Ollama is running OR provide a GROQ_API_KEY in .env.")
+            raise RuntimeError("Cannot connect to local Ollama. Please run 'ollama serve' or provide GROQ_API_KEY.")
 
     agent = create_oracle_agent()
 
@@ -160,9 +184,10 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
         except Exception as e:
             if "429" in str(e):
                 print("❌ Error: Rate limited by CoinGecko. Please try again in 1-2 minutes.")
+                raise RuntimeError("Rate limited by CoinGecko. Please try again in 1-2 minutes.")
             else:
                 print(f"❌ Error fetching data: {e}")
-            sys.exit(1)
+                raise RuntimeError(f"Error fetching data: {e}")
 
     return report
 

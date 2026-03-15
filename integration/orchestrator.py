@@ -30,25 +30,23 @@ def submit_to_contract(
 
     data_hash = w3.keccak(text=report.model_dump_json())
 
-    tx = contract.functions.submitData(
+    # Hash the 243KB proof — full proof is saved to disk, only hash goes on-chain.
+    # This drops calldata from 243KB → 32 bytes, cutting gas from ~9.7M to ~100K.
+    proof_hash = w3.keccak(primitive=proof_bytes)
+
+    tx_hash = contract.functions.submitData(
         report.asset,
         price_scaled,
         ma_scaled,
         report.timestamp,
         data_hash,
-        proof_bytes,
-    ).build_transaction({
+        proof_hash,
+    ).transact({
         "from": account,
-        "nonce": w3.eth.get_transaction_count(account),
-        "gas": 500_000,
+        "gas": 300_000,  # plenty for a simple storage call with 32-byte hash
     })
 
-    signed = w3.eth.account.sign_transaction(
-        tx, private_key="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-    )
-    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-    receipt = w3.eth.wait_for_transaction_receipt(tx_hash)
-
+    receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
     return receipt
 
 

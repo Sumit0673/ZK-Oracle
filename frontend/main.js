@@ -66,7 +66,8 @@ async function startPipeline() {
       showError(data.detail || 'Failed to start pipeline')
     }
   } catch (err) {
-    showError('Could not connect to the ZK-Oracle Backend.')
+    console.error('Failed to start pipeline. Error:', err)
+    showError(`Could not connect to the ZK-Oracle Backend. Error: ${err.message || err}`)
   }
 }
 

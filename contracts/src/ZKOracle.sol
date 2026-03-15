@@ -23,6 +23,7 @@ contract ZKOracle {
         uint256 movingAverage;
         uint256 timestamp;
         bytes32 dataHash;
+        bytes32 proofHash;   // keccak256 of the full ZK proof (stored off-chain)
         address submitter;
         uint256 blockNumber;
     }
@@ -39,6 +40,7 @@ contract ZKOracle {
         uint256 movingAverage,
         uint256 timestamp,
         bytes32 dataHash,
+        bytes32 proofHash,
         address indexed submitter
     );
 
@@ -68,7 +70,7 @@ contract ZKOracle {
         uint256 movingAverage,
         uint256 timestamp,
         bytes32 dataHash,
-        bytes calldata proof
+        bytes32 proofHash   // keccak256(fullProofBytes) — verified off-chain
     ) external onlyTrusted {
         require(bytes(asset).length > 0, "ZKOracle: empty asset");
         require(priceUsd > 0, "ZKOracle: zero price");
@@ -77,7 +79,7 @@ contract ZKOracle {
             timestamp <= block.timestamp + 300,
             "ZKOracle: future timestamp"
         );
-        require(proof.length > 0, "ZKOracle: empty proof");
+        require(proofHash != bytes32(0), "ZKOracle: empty proof hash");
 
         OracleData memory data = OracleData({
             asset: asset,
@@ -85,6 +87,7 @@ contract ZKOracle {
             movingAverage: movingAverage,
             timestamp: timestamp,
             dataHash: dataHash,
+            proofHash: proofHash,
             submitter: msg.sender,
             blockNumber: block.number
         });
@@ -99,6 +102,7 @@ contract ZKOracle {
             movingAverage,
             timestamp,
             dataHash,
+            proofHash,
             msg.sender
         );
     }

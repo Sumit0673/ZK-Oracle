@@ -6,7 +6,6 @@ from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-# Add current and parent directories to path for imports
 sys.path.append(str(Path(__file__).parent))
 sys.path.append(str(Path(__file__).parent.parent / "integration"))
 
@@ -18,16 +17,14 @@ import json
 
 app = FastAPI(title="ZK-Oracle API")
 
-# Enable CORS for frontend interaction
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify actual frontend URL
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Global state to track progress
 class PipelineStatus(BaseModel):
     asset: str
     status: str  # "idle", "analyzing", "proving", "submitting", "completed", "failed"
@@ -40,7 +37,7 @@ class PipelineStatus(BaseModel):
 
 pipeline_state: Dict[str, PipelineStatus] = {}
 
-async def run_zk_pipeline(asset: str):
+def run_zk_pipeline(asset: str):
     state = pipeline_state[asset]
     
     def log(msg: str, progress: Optional[int] = None):
@@ -55,11 +52,9 @@ async def run_zk_pipeline(asset: str):
         log("Initializing AI Agent...", 5)
         state.status = "analyzing"
         
-        log("Fetching current market data from CoinGecko...", 10)
-        # We'll run blocking calls in threads to keep the event loop alive if needed, 
-        # but for simplicity we keep them as is for now.
+        log("Fetching current market data from Binance/ Kraken/ CoinGecko...", 10)
         
-        log("AI Agent is analyzing price trends and generating report...", 25)
+        log("AI Agent (Groq/Ollama) is analyzing price trends and generating report...", 25)
         report = run_oracle(asset)
         state.report = report.model_dump()
         
@@ -117,7 +112,7 @@ async def run_zk_pipeline(asset: str):
         log(f"❌ ERROR: {str(e)}")
 
 @app.post("/analyze/{asset}")
-async def start_analysis(asset: str, background_tasks: BackgroundTasks):
+async def start_analysis(asset: str):
     asset = asset.lower()
     if asset in pipeline_state and pipeline_state[asset].status in ["analyzing", "proving", "submitting"]:
         return {"message": "Pipeline already running for this asset", "status": pipeline_state[asset]}
@@ -129,7 +124,7 @@ async def start_analysis(asset: str, background_tasks: BackgroundTasks):
         message="Starting pipeline..."
     )
     
-    background_tasks.add_task(run_zk_pipeline, asset)
+    asyncio.create_task(asyncio.to_thread(run_zk_pipeline, asset))
     return {"message": "Pipeline started", "asset": asset}
 
 @app.get("/status/{asset}")

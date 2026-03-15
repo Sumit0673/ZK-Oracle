@@ -27,8 +27,13 @@ prover:
 contracts-test:
 	cd contracts && forge test -vvv
 
-contracts-deploy:
-	cd contracts && forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --broadcast
+contracts-deploy: ## Deploy contracts to local Anvil
+	cd contracts && forge script script/Deploy.s.sol --rpc-url http://127.0.0.1:8545 --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 --broadcast
+
+contracts-deploy-sepolia: ## Deploy contracts to Sepolia testnet
+	@test -n "$(RPC_URL)" || (echo "RPC_URL is not set"; exit 1)
+	@test -n "$(PRIVATE_KEY)" || (echo "PRIVATE_KEY is not set"; exit 1)
+	cd contracts && forge script script/Deploy.s.sol --rpc-url $(RPC_URL) --private-key $(PRIVATE_KEY) --broadcast --verify
 
 anvil:
 	anvil
