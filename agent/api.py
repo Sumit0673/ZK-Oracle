@@ -64,7 +64,7 @@ def run_zk_pipeline(asset: str):
         state.status = "proving"
         log("Preparing data for ZK Proof generation...", 50)
         
-        log("Executing RISC Zero Guest Program inside ZKVM...", 60)
+        log("Requesting ZK Proof from RISC Zero Bonsai Cloud...", 60)
         proof_result = generate_proof(report)
         
         if not proof_result["success"]:
@@ -74,7 +74,11 @@ def run_zk_pipeline(asset: str):
         else:
             with open(proof_result["proof_path"], "rb") as f:
                 proof_bytes = f.read()
-            log(f"✅ ZK Proof generated successfully! Size: {len(proof_bytes)} bytes", 75)
+            
+            if proof_result.get("status") == "SUCCEEDED":
+                log("✅ ZK Proof generated successfully by Bonsai Cloud!", 75)
+            else:
+                log(f"✅ ZK Proof generated! Size: {len(proof_bytes)} bytes", 75)
             
         # Step 3: On-chain submission
         state.status = "submitting"
