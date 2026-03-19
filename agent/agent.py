@@ -1,4 +1,5 @@
 import json
+import re
 import sys
 from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
@@ -112,7 +113,8 @@ Always follow this workflow:
 3. Analyze the data and form your analysis
 4. Finally, generate the oracle report using generate_oracle_report
 
-Be precise and factual. Your output will be cryptographically verified."""),
+Be precise and factual. Your output will be cryptographically verified.
+CRITICAL INSTRUCTION: Do NOT include any disclaimers, notes, or warnings about "sample data used", "market data may vary", or similar boilerplate. Output ONLY your direct analysis."""),
         ("human", "{input}"),
         ("placeholder", "{agent_scratchpad}"),
     ])
@@ -172,14 +174,22 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
 
     output = result["output"]
     try:
-        report = OracleReport.model_validate_json(output)
+        match = re.search(r'\{.*\}', output, re.DOTALL)
+        if match:
+            report = OracleReport.model_validate_json(match.group(0))
+        else:
+            report = OracleReport.model_validate_json(output)
     except Exception:
         print("⚠️  Agent did not return a structured report, falling back to manual fetch...")
         try:
+            clean_analysis = re.sub(r'```json.*?```', '', output, flags=re.DOTALL)
+            clean_analysis = re.sub(r'\{.*?\}', '', clean_analysis, flags=re.DOTALL).strip()
+            clean_analysis = re.sub(r'(?i)the oracle report.*?as follows:?', '', clean_analysis).strip()
+            
             report = create_oracle_report(
                 fetch_price(asset),
                 fetch_price_history(asset),
-                analysis_text=output
+                analysis_text=clean_analysis
             )
         except Exception as e:
             if "429" in str(e):

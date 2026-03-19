@@ -129,7 +129,7 @@ def fetch_price(asset: str = "bitcoin", currency: str = "usd") -> dict:
             return result
         except Exception:
             continue
-    return get_mock_price(asset)
+    raise ValueError(f"Cannot fetch the price for {asset} from internet.")
 
 
 # ─── fetch_price_history ─────────────────────────────────────────────────────
@@ -169,7 +169,7 @@ def fetch_price_history(asset: str = "bitcoin", days: int = 7) -> dict:
             return source_fn(asset, days)
         except Exception:
             continue
-    return get_mock_history(asset, days)
+    raise ValueError(f"Cannot fetch price history for {asset} from internet.")
 
 
 # ─── CLI test ─────────────────────────────────────────────────────────────────
