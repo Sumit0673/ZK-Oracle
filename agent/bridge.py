@@ -8,7 +8,6 @@ import httpx
 from pathlib import Path
 from analyzer import OracleReport
 
-# RISC Zero Guest Image ID for this project
 IMAGE_ID = "62082eb7e35787321093273cad43850139c571689f309692ae0b0b8fe10f8c3f"
 
 PROVER_BINARY = Path(__file__).parent.parent / "circuits" / "target" / "release" / "zk-oracle-host"
@@ -22,7 +21,6 @@ def serialize_for_risczero(report: OracleReport) -> bytes:
         data = s.encode('utf-8')
         length = len(data)
         packed = struct.pack("<I", length) + data
-        # Pad to 4-byte boundary
         padding = (4 - (len(packed) % 4)) % 4
         return packed + (b'\x00' * padding)
 
@@ -47,21 +45,18 @@ def generate_proof_bonsai(report: OracleReport) -> dict:
         headers = {"x-api-key": api_key, "Content-Type": "application/octet-stream"}
         input_data = serialize_for_risczero(report)
 
-        # 1. Upload Input
         print("☁️ Uploading input to Bonsai...")
         with httpx.Client() as client:
             res = client.post(f"{api_url}/inputs", content=input_data, headers=headers)
             res.raise_for_status()
             input_id = res.json()["id"]
 
-            # 2. Create Session
             print(f"🔄 Creating proving session for Image {IMAGE_ID[:8]}...")
             session_payload = {"image_id": IMAGE_ID, "input_id": input_id}
             res = client.post(f"{api_url}/sessions", json=session_payload, headers=headers)
             res.raise_for_status()
             session_id = res.json()["id"]
 
-            # 3. Poll for result
             print(f"⏳ Waiting for ZK Proof (Session: {session_id[:8]})...")
             start_time = time.time()
             while time.time() - start_time < 600:  # 10 min timeout
@@ -104,14 +99,12 @@ def generate_proof_bonsai(report: OracleReport) -> dict:
 def generate_proof(report: OracleReport) -> dict:
     """Orchestrates proof generation, prioritizing Bonsai then Local then Dummy."""
     
-    # Check for Bonsai first
     if os.getenv("BONSAI_API_KEY"):
         result = generate_proof_bonsai(report)
         if result["success"]:
             return result
         print(f"⚠️ Bonsai failed, falling back: {result.get('error')}")
 
-    # Fallback to local binary
     if PROVER_BINARY.exists():
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
             f.write(report.model_dump_json())
@@ -130,7 +123,6 @@ def generate_proof(report: OracleReport) -> dict:
         except Exception as e:
             print(f"⚠️ Local prover failed: {e}")
 
-    # Final fallback: Dummy proof (for testing/demo)
     print("⚠️ Using dummy proof for demonstration.")
     output_dir = Path(__file__).parent.parent / "circuits" / "output"
     output_dir.mkdir(exist_ok=True)

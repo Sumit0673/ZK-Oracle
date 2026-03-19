@@ -333,3 +333,75 @@ button:disabled {
   50% { transform: scale(1.05); opacity: 0.8; }
   100% { transform: scale(1); opacity: 1; }
 }
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  #app {
+    padding: 1rem;
+  }
+
+  .glass-card {
+    padding: 1.5rem;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  .subtitle {
+    font-size: 0.95rem;
+    margin-bottom: 2rem;
+  }
+
+  .controls {
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  input {
+    width: 100%;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  /* Vertical Stepper for Mobile */
+  .stepper {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2rem;
+    padding: 0;
+    margin-left: 0.5rem;
+  }
+
+  .stepper::before {
+    top: 24px;
+    left: 23px; /* Center of the 48px icon */
+    right: auto;
+    width: 2px;
+    height: calc(100% - 48px);
+  }
+
+  .step {
+    flex-direction: row;
+    width: 100%;
+    gap: 1.25rem;
+  }
+
+  .step-label {
+    text-align: left;
+    font-size: 1rem;
+  }
+
+  .terminal-logs {
+    height: 150px;
+    font-size: 0.75rem;
+  }
+
+  .report-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
