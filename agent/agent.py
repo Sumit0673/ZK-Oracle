@@ -128,12 +128,12 @@ Always follow this workflow:
 1. Fetch the current price using get_crypto_price
 2. Fetch the price history using get_price_history
 3. Fetch technical analysis data using analyze_technical_indicators
-4. Fetch the latest news using get_crypto_news
-5. Analyze all the data (Price, Trend, Indicators, and Sentiment) and form your combined analysis. Format your analysis exactly using these uppercase tags:
+4. Fetch the latest news and Top 5 recent headlines using get_crypto_news
+5. Analyze all the data (Price, Trend, Indicators, and Sentiment). Format your analysis exactly using these uppercase tags:
 [SENTIMENT]
-(your sentiment analysis)
+(State your overall bullish/bearish/neutral sentiment and back it up explicitly citing the top headlines provided)
 [NEWS]
-(your news summary)
+(List the Top 5 headlines exactly as provided by the news tool, along with their source)
 [TECHNICALS]
 (your technical analysis)
 [CONCLUSION]

@@ -1,6 +1,7 @@
 import requests
 import urllib3
 import random
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 # --- API Sources (tried in order, falls back if unavailable) ---
@@ -29,16 +30,16 @@ def get_mock_news(asset: str) -> dict:
     
     sentiment = random.choices(sentiments, weights=weight)[0]
     
-    headlines = {
-        "Bullish": [f"{asset.title()} sees massive institutional adoption", f"New technological breakthrough scales {asset.title()} network", f"{asset.title()} ETF flows reach all time high"],
-        "Bearish": [f"Regulatory concerns hit {asset.title()} markets", f"Macroeconomic factors drag down {asset.title()} price", f"Large exchange moves {asset.title()} to cold storage sparking panic"],
-        "Neutral": [f"{asset.title()} market trading sideways amid uncertainty", f"{asset.title()} network upgrade goes smoothly without price impact", f"{asset.title()} dominance remains steady"]
+    headlines_dict = {
+        "Bullish": [f"{asset.title()} sees massive institutional adoption", f"New technological breakthrough scales {asset.title()} network", f"{asset.title()} ETF flows reach all time high", f"Major country announces {asset.title()} integration", f"Whales accumulating {asset.title()} at record pace"],
+        "Bearish": [f"Regulatory concerns hit {asset.title()} markets", f"Macroeconomic factors drag down {asset.title()} price", f"Large exchange moves {asset.title()} to cold storage sparking panic", f"Tighter monetary policy hurts {asset.title()}", f"{asset.title()} faces severe network congestion causing high fees"],
+        "Neutral": [f"{asset.title()} market trading sideways amid uncertainty", f"{asset.title()} network upgrade goes smoothly without price impact", f"{asset.title()} dominance remains steady", f"Market awaits next major catalyst for {asset.title()}", f"{asset.title()} miners hold steady despite difficulty adjustment"]
     }
     
     return {
         "asset": asset,
         "sentiment": sentiment,
-        "headlines": [random.choice(headlines[sentiment]) for _ in range(2)],
+        "headlines": random.sample(headlines_dict[sentiment], 5),
         "source": "Mock News Engine",
         "timestamp": int(datetime.now(timezone.utc).timestamp())
     }
@@ -199,9 +200,36 @@ def fetch_price_history(asset: str = "bitcoin", days: int = 7) -> dict:
 
 # ─── fetch_news ─────────────────────────────────────────────────────────────
 def fetch_news(asset: str = "bitcoin") -> dict:
-    """Fetch recent news and sentiment for the asset. Currently uses mock data."""
-    # In a real app, this would integrate with CryptoPanic, NewsAPI, etc.
-    return get_mock_news(asset)
+    """Fetch 5 latest headlines from Google News RSS for the given asset."""
+    url = f"https://news.google.com/rss/search?q={asset}+when:1d&hl=en-US&gl=US&ceid=US:en"
+    try:
+        r = requests.get(url, headers={"User-Agent": "Mozilla/5.0 ZK-Oracle"}, timeout=5, verify=VERIFY_SSL)
+        r.raise_for_status()
+        root = ET.fromstring(r.text)
+        all_items = root.findall('.//item')
+        
+        headlines = []
+        for item in all_items:
+            title = item.find('title')
+            if title is not None and title.text:
+                # Google news titles often have " - SourceName" appended. We keep it!
+                headlines.append(title.text)
+                
+        final_headlines = headlines[:5]
+        
+        if len(final_headlines) == 0:
+            return get_mock_news(asset)
+            
+        return {
+            "asset": asset,
+            "sentiment": "Pending LLM Analysis",
+            "headlines": final_headlines,
+            "source": "Google News RSS",
+            "timestamp": int(datetime.now(timezone.utc).timestamp())
+        }
+    except Exception as e:
+        print(f"⚠️  RSS fetch failed: {e}. Falling back to mock data.")
+        return get_mock_news(asset)
 
 
 # ─── CLI test ─────────────────────────────────────────────────────────────────

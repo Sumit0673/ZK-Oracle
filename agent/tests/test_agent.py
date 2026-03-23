@@ -60,11 +60,11 @@ class TestDataFetcher:
         print(f"  ✅ Got {len(result['prices'])} price points")
 
     def test_fetch_news(self):
-        """Can we fetch mock sentiment and news?"""
+        """Can we fetch live headlines or mock sentiment?"""
         result = fetch_news("bitcoin")
         assert result["asset"] == "bitcoin"
-        assert result["sentiment"] in ["Bullish", "Bearish", "Neutral"]
-        assert len(result["headlines"]) == 2
+        assert result["sentiment"] in ["Pending LLM Analysis", "Bullish", "Bearish", "Neutral"]
+        assert len(result["headlines"]) > 0
         print(f"  ✅ Sentiment: {result['sentiment']}")
 
 
