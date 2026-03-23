@@ -155,6 +155,9 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
     Returns:
         OracleReport with verified data
     """
+    # Fast fail to prevent LLM from hallucinating data for unknown coins
+    fetch_price(asset)
+    
     if not check_llm_connectivity():
         groq_api_key = os.getenv("GROQ_API_KEY")
         if groq_api_key:
