@@ -374,6 +374,31 @@ button:disabled {
   font-size: 0.95rem;
 }
 
+.box-content strong {
+  color: #fff;
+  font-weight: 600;
+  display: block;
+  margin-top: 0.5rem;
+}
+
+.news-link {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  font-size: 0.85rem;
+  display: inline-block;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  word-break: break-all;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.news-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+  color: var(--accent);
+}
+
 .tx-link {
   display: inline-block;
   margin-top: 1.5rem;

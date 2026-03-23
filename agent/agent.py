@@ -133,7 +133,9 @@ Always follow this workflow:
 [SENTIMENT]
 (State your overall bullish/bearish/neutral sentiment and back it up explicitly citing the top headlines provided)
 [NEWS]
-(List the Top 5 headlines exactly as provided. For EVERY headline, you MUST include its Title, Source, and the full URL Link as a clickable lookalike, e.g., "1. Title - Source (URL)")
+(List the Top 5 headlines as a clear bulleted list. Each item MUST be on a new line with double spacing between them. For EVERY headline, include:
+- **Title** (Source)
+- Link: URL)
 [TECHNICALS]
 (your technical analysis)
 [CONCLUSION]

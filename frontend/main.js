@@ -210,7 +210,10 @@ function renderAnalysisBoxes(analysisText) {
     // Replace URLs with <a> tags
     const urlRegex = /(https?:\/\/[^\s]+)/g;
     return text.trim()
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="news-link">${url}</a>`)
+      .replace(/\n\s*[\*\-]\s+/g, '<br>• ') // Convert bullet points (* or -)
+      .replace(/\n(\d+)\.\s+/g, '<br>$1. ') // Handle numbered lists
       .replace(/\n/g, '<br>');
   };
   
