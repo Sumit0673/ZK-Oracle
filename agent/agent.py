@@ -5,20 +5,14 @@ from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 from langchain_groq import ChatGroq
 import os
-try:
-    from langchain.agents import AgentExecutor, create_tool_calling_agent
-except ImportError:
-    try:
-        from langchain_classic.agents.agent import AgentExecutor
-        from langchain_classic.agents.tool_calling_agent.base import create_tool_calling_agent
-    except ImportError:
-        from langchain.agents.agent import AgentExecutor
-        from langchain.agents.agent_toolkits import create_tool_calling_agent
+from langgraph.prebuilt import create_react_agent
 from langchain.tools import tool
 from langchain_core.prompts import ChatPromptTemplate
 
-from data_fetcher import fetch_price, fetch_price_history
-from analyzer import compute_moving_average, create_oracle_report, OracleReport
+from langgraph.checkpoint.memory import MemorySaver
+
+from data_fetcher import fetch_price, fetch_price_history, fetch_news
+from analyzer import compute_moving_average, compute_rsi, compute_macd, create_oracle_report, OracleReport
 
 load_dotenv()
 
@@ -65,26 +59,49 @@ def get_price_history(asset: str = "bitcoin", days: int = 7) -> str:
 
 
 @tool
-def generate_oracle_report(asset: str = "bitcoin", analysis: str = "") -> str:
-    """Generate a final oracle report for the given asset.
-    Call this AFTER using get_crypto_price and get_price_history.
-    This creates the structured report that will be sent for ZK proof generation.
+def get_crypto_news(asset: str = "bitcoin") -> str:
+    """Fetch current news headlines and market sentiment for a cryptocurrency.
+    Use this to understand the market context before writing your analysis.
     Args:
         asset: The cryptocurrency name
-        analysis: Your analysis summary of the price data and trends
     """
     try:
-        price_data = fetch_price(asset)
-        history_data = fetch_price_history(asset, days=7)
-        report = create_oracle_report(price_data, history_data, analysis)
-        return report.model_dump_json(indent=2)
+        data = fetch_news(asset)
+        return json.dumps(data, indent=2)
     except Exception as e:
-        return f"Error generating report: {str(e)}"
+        return f"Error fetching news: {str(e)}"
 
 
+@tool
+def analyze_technical_indicators(asset: str = "bitcoin") -> str:
+    """Compute advanced technical indicators (RSI and MACD) for a cryptocurrency.
+    Use this to identify overbought/oversold conditions and momentum trends.
+    Args:
+        asset: The cryptocurrency name
+    """
+    try:
+        data = fetch_price_history(asset, days=40)
+        prices = data["prices"]
+        
+        rsi = compute_rsi(prices)
+        macd_data = compute_macd(prices)
+        
+        result = {
+            "asset": asset,
+            "rsi_14d": rsi,
+            "macd": macd_data,
+            "interpretation": {
+                "rsi": "Overbought" if rsi > 70 else "Oversold" if rsi < 30 else "Neutral",
+                "macd": "Bullish Momentum" if macd_data["histogram"] > 0 else "Bearish Momentum"
+            }
+        }
+        return json.dumps(result, indent=2)
+    except Exception as e:
+        return f"Error computing indicators: {str(e)}"
 
-def create_oracle_agent() -> AgentExecutor:
-    """Create and return the LangChain oracle agent."""
+
+def create_oracle_agent():
+    """Create and return the LangGraph oracle agent."""
     # The LLM (brain of the agent)
     # Prioritize Groq for production/cloud deployment
     groq_api_key = os.getenv("GROQ_API_KEY")
@@ -99,34 +116,43 @@ def create_oracle_agent() -> AgentExecutor:
         print("💡 Using Ollama (Local)...")
         llm = ChatOllama(model="llama3.1", temperature=0)
 
-    tools = [get_crypto_price, get_price_history, generate_oracle_report]
+    tools = [get_crypto_price, get_price_history, get_crypto_news, analyze_technical_indicators]
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """You are a ZK Oracle Agent. Your job is to:
+    system_prompt = """You are a ZK Oracle Agent. Your job is to:
 1. Fetch current cryptocurrency price data
-2. Analyze price trends using historical data
-3. Generate a verified oracle report
+2. Get the recent news and sentiment
+3. Analyze price trends using historical data, RSI, and MACD technical indicators
+4. Generate a verified oracle report
 
 Always follow this workflow:
-1. First, fetch the current price using get_crypto_price
-2. Then, get the price history using get_price_history
-3. Analyze the data and form your analysis
-4. Finally, generate the oracle report using generate_oracle_report
+1. Fetch the current price using get_crypto_price
+2. Fetch the price history using get_price_history
+3. Fetch technical analysis data using analyze_technical_indicators
+4. Fetch the latest news using get_crypto_news
+5. Analyze all the data (Price, Trend, Indicators, and Sentiment) and form your combined analysis. Format your analysis exactly using these uppercase tags:
+[SENTIMENT]
+(your sentiment analysis)
+[NEWS]
+(your news summary)
+[TECHNICALS]
+(your technical analysis)
+[CONCLUSION]
+(your overall conclusion)
+6. Finally, YOU MUST respond by returning a raw JSON block matching this exact schema:
+{
+  "asset": "string",
+  "price_usd": 12345.67,
+  "moving_average": 12345.67,
+  "source": "string",
+  "timestamp": 1234567890,
+  "analysis": "string containing the full tagged analysis from step 5"
+}
 
 Be precise and factual. Your output will be cryptographically verified.
-CRITICAL INSTRUCTION: Do NOT include any disclaimers, notes, or warnings about "sample data used", "market data may vary", or similar boilerplate. Output ONLY your direct analysis."""),
-        ("human", "{input}"),
-        ("placeholder", "{agent_scratchpad}"),
-    ])
+CRITICAL INSTRUCTION: Do NOT include any disclaimers! Output ONLY the JSON block at the end."""
 
-    agent = create_tool_calling_agent(llm, tools, prompt)
-
-    return AgentExecutor(
-        agent=agent,
-        tools=tools,
-        verbose=True,
-        handle_parsing_errors=True,
-    )
+    memory = MemorySaver()
+    return create_react_agent(llm, tools=tools, prompt=system_prompt, checkpointer=memory)
 
 
 def check_llm_connectivity() -> bool:
@@ -146,17 +172,6 @@ def check_llm_connectivity() -> bool:
 
 
 def run_oracle(asset: str = "bitcoin") -> OracleReport:
-    """
-    Run the full oracle agent pipeline for a given asset.
-
-    Args:
-        asset: Cryptocurrency to analyze (default: "bitcoin")
-
-    Returns:
-        OracleReport with verified data
-    """
-    # Fast fail to prevent LLM from hallucinating data for unknown coins
-    fetch_price(asset)
     
     if not check_llm_connectivity():
         groq_api_key = os.getenv("GROQ_API_KEY")
@@ -171,38 +186,34 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
     agent = create_oracle_agent()
 
     result = agent.invoke({
-        "input": f"Analyze the current price and 7-day trend for {asset}. "
-                 f"Then generate an oracle report with your analysis."
-    })
+        "messages": [("user", f"Analyze the current price, 7-day trend, and news sentiment for {asset}. "
+                              f"Then generate an oracle report with your combined analysis.")]
+    }, config={"configurable": {"thread_id": "1"}})
 
-    output = result["output"]
+    if "structured_response" in result and result["structured_response"]:
+        report = result["structured_response"]
+        if isinstance(report, dict):
+            return OracleReport(**report)
+        return report
+        
+    # LangGraph fallback mechanism if structured_response isn't present
+    output = result["messages"][-1]
+    
+    if hasattr(output, "tool_calls") and len(output.tool_calls) > 0:
+        return OracleReport(**output.tool_calls[0]["args"])
+        
+    # Parse JSON from content
+    content = output.content
     try:
-        match = re.search(r'\{.*\}', output, re.DOTALL)
+        # Fallback simple regex for json
+        match = re.search(r'\{.*\}', content, re.DOTALL)
         if match:
-            report = OracleReport.model_validate_json(match.group(0))
-        else:
-            report = OracleReport.model_validate_json(output)
-    except Exception:
-        print("⚠️  Agent did not return a structured report, falling back to manual fetch...")
-        try:
-            clean_analysis = re.sub(r'```json.*?```', '', output, flags=re.DOTALL)
-            clean_analysis = re.sub(r'\{.*?\}', '', clean_analysis, flags=re.DOTALL).strip()
-            clean_analysis = re.sub(r'(?i)the oracle report.*?as follows:?', '', clean_analysis).strip()
-            
-            report = create_oracle_report(
-                fetch_price(asset),
-                fetch_price_history(asset),
-                analysis_text=clean_analysis
-            )
-        except Exception as e:
-            if "429" in str(e):
-                print("❌ Error: Rate limited by CoinGecko. Please try again in 1-2 minutes.")
-                raise RuntimeError("Rate limited by CoinGecko. Please try again in 1-2 minutes.")
-            else:
-                print(f"❌ Error fetching data: {e}")
-                raise RuntimeError(f"Error fetching data: {e}")
-
-    return report
+            json_str = match.group(0)
+            return OracleReport.model_validate_json(json_str)
+    except Exception as e:
+        print(f"JSON Parse Error: {e}")
+        
+    raise RuntimeError(f"Agent failed to output strict structured format. Raw output: {content}")
 
 
 if __name__ == "__main__":
@@ -210,5 +221,51 @@ if __name__ == "__main__":
     print("=" * 50)
     report = run_oracle("bitcoin")
     print("\n" + "=" * 50)
-    print("📊 Oracle Report:")
+    print("📊 Oracle Report Analysis:")
+    
+    analysis_text = report.analysis
+    
+    try:
+        from rich.console import Console
+        from rich.panel import Panel
+        from rich.text import Text
+        
+        console = Console()
+        
+        sections = {"SENTIMENT": "", "NEWS": "", "TECHNICALS": "", "CONCLUSION": ""}
+        
+        # Parse the tags robustly using regex
+        import re
+        parts = re.split(r'\[(SENTIMENT|NEWS|TECHNICALS|CONCLUSION)\]', analysis_text)
+        if len(parts) > 1:
+            for i in range(1, len(parts), 2):
+                tag = parts[i]
+                content = parts[i+1].strip()
+                if content:
+                    sections[tag] = content
+        else:
+            sections["CONCLUSION"] = analysis_text
+                
+        # Print panels
+        if any(sections.values()):
+            if sections["SENTIMENT"].strip():
+                console.print(Panel(sections["SENTIMENT"].strip(), title="[bold cyan]Sentiment[/bold cyan]", border_style="cyan"))
+            if sections["NEWS"].strip():
+                console.print(Panel(sections["NEWS"].strip(), title="[bold blue]News[/bold blue]", border_style="blue"))
+            if sections["TECHNICALS"].strip():
+                console.print(Panel(sections["TECHNICALS"].strip(), title="[bold magenta]Price & Technicals[/bold magenta]", border_style="magenta"))
+            if sections["CONCLUSION"].strip():
+                console.print(Panel(sections["CONCLUSION"].strip(), title="[bold green]Overall Conclusion[/bold green]", border_style="green"))
+        else:
+            # Fallback if the agent didn't use tags
+            console.print(Panel(analysis_text, title="[bold green]Analysis[/bold green]", border_style="green"))
+            
+    except ImportError:
+        # Fallback if 'rich' is not installed
+        print("\n--- Sentiment ---\n" + sections.get("SENTIMENT", ""))
+        print("\n--- News ---\n" + sections.get("NEWS", ""))
+        print("\n--- Price & Technicals ---\n" + sections.get("TECHNICALS", ""))
+        print("\n--- Conclusion ---\n" + sections.get("CONCLUSION", ""))
+        
+    print("\n📦 Raw JSON Payload (for ZK Circuit):")
     print(report.model_dump_json(indent=2))

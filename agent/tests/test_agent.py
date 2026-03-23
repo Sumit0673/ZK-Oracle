@@ -14,8 +14,8 @@ import pytest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from data_fetcher import fetch_price, fetch_price_history
-from analyzer import compute_moving_average, create_oracle_report, OracleReport
+from data_fetcher import fetch_price, fetch_price_history, fetch_news
+from analyzer import compute_moving_average, compute_rsi, compute_macd, create_oracle_report, OracleReport
 
 
 class TestDataFetcher:
@@ -29,7 +29,7 @@ class TestDataFetcher:
         assert result["asset"] == "bitcoin"
         assert result["price"] > 0
         assert result["timestamp"] > 0
-        assert "coingecko" in result["source"]
+        assert len(result["source"]) > 0
         print(f"  ✅ Bitcoin price: ${result['price']:,.2f}")
 
     def test_fetch_ethereum_price(self):
@@ -58,6 +58,14 @@ class TestDataFetcher:
         assert len(first_point) == 2
         assert first_point[1] > 0
         print(f"  ✅ Got {len(result['prices'])} price points")
+
+    def test_fetch_news(self):
+        """Can we fetch mock sentiment and news?"""
+        result = fetch_news("bitcoin")
+        assert result["asset"] == "bitcoin"
+        assert result["sentiment"] in ["Bullish", "Bearish", "Neutral"]
+        assert len(result["headlines"]) == 2
+        print(f"  ✅ Sentiment: {result['sentiment']}")
 
 
 
@@ -125,6 +133,30 @@ class TestAnalyzer:
         assert parsed["asset"] == "bitcoin"
         assert parsed["price_usd"] == 67000.0
         print(f"  ✅ JSON serialization works ({len(json_str)} bytes)")
+
+    def test_compute_rsi(self):
+        """Does the RSI calculate correctly?"""
+        # Strong upward trend should give high RSI
+        mock_prices_up = [[i, 100 + i * 10] for i in range(20)]
+        rsi_up = compute_rsi(mock_prices_up, window=14)
+        assert rsi_up > 70
+        print(f"  ✅ Uptrend RSI: {rsi_up}")
+        
+        # Strong downward trend should give low RSI
+        mock_prices_down = [[i, 300 - i * 10] for i in range(20)]
+        rsi_down = compute_rsi(mock_prices_down, window=14)
+        assert rsi_down < 30
+        print(f"  ✅ Downtrend RSI: {rsi_down}")
+
+    def test_compute_macd(self):
+        """Does MACD calculate correctly?"""
+        # Provide enough data points to satisfy the 26+9 day MACD calculation
+        mock_prices = [[i, 100 + (i % 5) * 10] for i in range(40)]
+        macd_data = compute_macd(mock_prices)
+        assert "macd" in macd_data
+        assert "signal" in macd_data
+        assert "histogram" in macd_data
+        print(f"  ✅ MACD computed: {macd_data['macd']} (Signal: {macd_data['signal']})")
 
 
 

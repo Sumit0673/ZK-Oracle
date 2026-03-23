@@ -22,7 +22,30 @@ COINGECKO_IDS   = {"bitcoin": "bitcoin", "ethereum": "ethereum", "solana": "sola
 
 
 # ─── Mock Data Fallback ─────────────────────────────────────────────────────
+def get_mock_news(asset: str) -> dict:
+    print(f"⚠️  Using mock news data for {asset}.")
+    sentiments = ["Bullish", "Bearish", "Neutral"]
+    weight = [0.5, 0.2, 0.3] if asset.lower() == "bitcoin" else [0.3, 0.3, 0.4]
+    
+    sentiment = random.choices(sentiments, weights=weight)[0]
+    
+    headlines = {
+        "Bullish": [f"{asset.title()} sees massive institutional adoption", f"New technological breakthrough scales {asset.title()} network", f"{asset.title()} ETF flows reach all time high"],
+        "Bearish": [f"Regulatory concerns hit {asset.title()} markets", f"Macroeconomic factors drag down {asset.title()} price", f"Large exchange moves {asset.title()} to cold storage sparking panic"],
+        "Neutral": [f"{asset.title()} market trading sideways amid uncertainty", f"{asset.title()} network upgrade goes smoothly without price impact", f"{asset.title()} dominance remains steady"]
+    }
+    
+    return {
+        "asset": asset,
+        "sentiment": sentiment,
+        "headlines": [random.choice(headlines[sentiment]) for _ in range(2)],
+        "source": "Mock News Engine",
+        "timestamp": int(datetime.now(timezone.utc).timestamp())
+    }
+
 def get_mock_price(asset: str) -> dict:
+    if asset.lower() not in ["bitcoin", "ethereum", "solana"]:
+        raise ValueError("Asset not found")
     print(f"⚠️  All price APIs unavailable. Using mock data for {asset}.")
     base_prices = {"bitcoin": 71700.0, "ethereum": 3900.0, "solana": 145.0}
     price = base_prices.get(asset.lower(), 100.0) * (1 + random.uniform(-0.005, 0.005))
@@ -36,6 +59,8 @@ def get_mock_price(asset: str) -> dict:
     }
 
 def get_mock_history(asset: str, days: int) -> dict:
+    if asset.lower() not in ["bitcoin", "ethereum", "solana"]:
+        raise ValueError("Asset not found")
     print(f"⚠️  All history APIs unavailable. Using mock data for {asset}.")
     base_prices = {"bitcoin": 71700.0, "ethereum": 3900.0, "solana": 145.0}
     current_price = base_prices.get(asset.lower(), 100.0)
@@ -129,7 +154,7 @@ def fetch_price(asset: str = "bitcoin", currency: str = "usd") -> dict:
             return result
         except Exception:
             continue
-    raise ValueError(f"Cannot fetch the price for {asset} from internet.")
+    return get_mock_price(asset)
 
 
 # ─── fetch_price_history ─────────────────────────────────────────────────────
@@ -169,7 +194,14 @@ def fetch_price_history(asset: str = "bitcoin", days: int = 7) -> dict:
             return source_fn(asset, days)
         except Exception:
             continue
-    raise ValueError(f"Cannot fetch price history for {asset} from internet.")
+    return get_mock_history(asset, days)
+
+
+# ─── fetch_news ─────────────────────────────────────────────────────────────
+def fetch_news(asset: str = "bitcoin") -> dict:
+    """Fetch recent news and sentiment for the asset. Currently uses mock data."""
+    # In a real app, this would integrate with CryptoPanic, NewsAPI, etc.
+    return get_mock_news(asset)
 
 
 # ─── CLI test ─────────────────────────────────────────────────────────────────
@@ -187,3 +219,9 @@ if __name__ == "__main__":
     if history["prices"]:
         print(f"  First close: ${history['prices'][0][1]:,.2f}")
         print(f"  Latest close: ${history['prices'][-1][1]:,.2f}")
+
+    print("\nFetching News & Sentiment...")
+    news = fetch_news("bitcoin")
+    print(f"  Sentiment: {news['sentiment']}")
+    for i, headline in enumerate(news['headlines']):
+        print(f"  Headline {i+1}: {headline}")

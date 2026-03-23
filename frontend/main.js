@@ -144,6 +144,25 @@ function updateUI(data) {
   }
 }
 
+function parseAnalysis(text) {
+  const sections = { SENTIMENT: '', NEWS: '', TECHNICALS: '', CONCLUSION: '' };
+  
+  if (!text) return sections;
+
+  const parts = text.split(/\[(SENTIMENT|NEWS|TECHNICALS|CONCLUSION)\]/);
+  if (parts.length > 1) {
+    for (let i = 1; i < parts.length; i += 2) {
+      const tag = parts[i];
+      const content = parts[i+1] ? parts[i+1].trim() : '';
+      if (content) sections[tag] = content;
+    }
+  } else {
+    sections['CONCLUSION'] = text;
+  }
+  
+  return sections;
+}
+
 function showResult(data) {
   const report = data.report
   resultArea.innerHTML = `
@@ -167,14 +186,53 @@ function showResult(data) {
           <div class="info-value" style="color: var(--success)">✓ SECURE</div>
         </div>
       </div>
-      <div class="info-label">AI Analysis</div>
-      <div class="analysis-text">${report.analysis}</div>
+      
+      <div class="info-label" style="margin-top: 2rem;">Detailed AI Analysis</div>
+      ${renderAnalysisBoxes(report.analysis)}
       
       <a href="#" class="tx-link">
         View On-Chain Receipt: ${data.tx_hash.substring(0, 10)}...${data.tx_hash.substring(data.tx_hash.length - 8)}
       </a>
     </div>
   `
+}
+
+function renderAnalysisBoxes(analysisText) {
+  const parsed = parseAnalysis(analysisText);
+  const hasSections = Object.values(parsed).some(s => s.trim().length > 0);
+  
+  if (!hasSections) {
+    return `<div class="analysis-text">${analysisText}</div>`;
+  }
+  
+  return `
+    <div class="analysis-grid">
+      ${parsed.SENTIMENT.trim() ? `
+        <div class="analysis-box sentiment-box">
+          <div class="box-header">Sentiment</div>
+          <div class="box-content">${parsed.SENTIMENT.trim().replace(/\\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+      ${parsed.NEWS.trim() ? `
+        <div class="analysis-box news-box">
+          <div class="box-header">News</div>
+          <div class="box-content">${parsed.NEWS.trim().replace(/\\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+      ${parsed.TECHNICALS.trim() ? `
+        <div class="analysis-box technicals-box">
+          <div class="box-header">Price & Technicals</div>
+          <div class="box-content">${parsed.TECHNICALS.trim().replace(/\\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+      ${parsed.CONCLUSION.trim() ? `
+        <div class="analysis-box conclusion-box">
+          <div class="box-header">Overall Conclusion</div>
+          <div class="box-content">${parsed.CONCLUSION.trim().replace(/\\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+    </div>
+  `;
 }
 
 function showError(msg) {
