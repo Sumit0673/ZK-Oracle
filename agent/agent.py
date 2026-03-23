@@ -133,7 +133,7 @@ Always follow this workflow:
 [SENTIMENT]
 (State your overall bullish/bearish/neutral sentiment and back it up explicitly citing the top headlines provided)
 [NEWS]
-(List the Top 5 headlines exactly as provided by the news tool, along with their source)
+(List the Top 5 headlines exactly as provided. For EVERY headline, you MUST include its Title, Source, and the full URL Link as a clickable lookalike, e.g., "1. Title - Source (URL)")
 [TECHNICALS]
 (your technical analysis)
 [CONCLUSION]
@@ -145,11 +145,11 @@ Always follow this workflow:
   "moving_average": 12345.67,
   "source": "string",
   "timestamp": 1234567890,
-  "analysis": "string containing the full tagged analysis from step 5"
+  "analysis": "string containing the full tagged analysis from step 5. IMPORTANT: This MUST be a single string with all newlines escaped as \\n."
 }
 
 Be precise and factual. Your output will be cryptographically verified.
-CRITICAL INSTRUCTION: Do NOT include any disclaimers! Output ONLY the JSON block at the end."""
+CRITICAL INSTRUCTION: Do NOT include any disclaimers! Output ONLY the JSON block at the end. You MUST include the full URLs provided by the news tool in the analysis text. All newlines in the JSON 'analysis' value MUST be escaped (\\n)."""
 
     memory = MemorySaver()
     return create_react_agent(llm, tools=tools, prompt=system_prompt, checkpointer=memory)
@@ -204,16 +204,55 @@ def run_oracle(asset: str = "bitcoin") -> OracleReport:
         
     # Parse JSON from content
     content = output.content
-    try:
-        # Fallback simple regex for json
-        match = re.search(r'\{.*\}', content, re.DOTALL)
-        if match:
-            json_str = match.group(0)
-            return OracleReport.model_validate_json(json_str)
-    except Exception as e:
-        print(f"JSON Parse Error: {e}")
-        
-    raise RuntimeError(f"Agent failed to output strict structured format. Raw output: {content}")
+    import json
+    import re
+    
+    # Attempt to find the JSON-like structure
+    json_match = re.search(r'\{(.*)\}', content, re.DOTALL) or re.search(r'\{(.*)', content, re.DOTALL)
+    if json_match:
+        json_str = json_match.group(0)
+        if not json_str.endswith('}'):
+            json_str += '"\n}' # Likely missing the end of the analysis and the brace
+            
+        try:
+            # Try standard load
+            data = json.loads(json_str)
+            return OracleReport(**data)
+        except Exception:
+            # Regex-based extraction fallback (Ultra-robust)
+            try:
+                def get_field(key, pattern, default=None):
+                    m = re.search(f'"{key}":\\s*{pattern}', json_str, re.DOTALL)
+                    return m.group(1) if m else default
+
+                asset_val = get_field("asset", '"(.*?)"', "unknown")
+                price_val = float(get_field("price_usd", '([\\d\\.]+)', 0.0))
+                ma_val = float(get_field("moving_average", '([\\d\\.]+)', 0.0))
+                source_val = get_field("source", '"(.*?)"', "unknown")
+                ts_val = int(get_field("timestamp", '(\\d+)', 0))
+                
+                # Analysis is the multi-line beast
+                analysis_m = re.search(r'"analysis":\s*"(.*)', json_str, re.DOTALL)
+                analysis_val = "Analysis extraction failed"
+                if analysis_m:
+                    analysis_val = analysis_m.group(1)
+                    # Strip trailing quote and brace if present
+                    analysis_val = re.sub(r'"\s*}\s*$', '', analysis_val)
+                    # Clean up escaped newlines etc
+                    analysis_val = analysis_val.replace('\\n', '\n').replace('\\"', '"')
+                
+                return OracleReport(
+                    asset=asset_val,
+                    price_usd=price_val,
+                    moving_average=ma_val,
+                    source=source_val,
+                    timestamp=ts_val,
+                    analysis=analysis_val
+                )
+            except Exception as e:
+                raise RuntimeError(f"Agent failed to output parseable report. Error: {e}. Raw: {content}")
+    
+    raise RuntimeError(f"Agent failed to find JSON block. Raw: {content}")
 
 
 if __name__ == "__main__":

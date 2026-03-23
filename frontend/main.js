@@ -205,30 +205,39 @@ function renderAnalysisBoxes(analysisText) {
     return `<div class="analysis-text">${analysisText}</div>`;
   }
   
+  const formatContent = (text) => {
+    if (!text) return '';
+    // Replace URLs with <a> tags
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.trim()
+      .replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="news-link">${url}</a>`)
+      .replace(/\n/g, '<br>');
+  };
+  
   return `
     <div class="analysis-grid">
       ${parsed.SENTIMENT.trim() ? `
         <div class="analysis-box sentiment-box">
           <div class="box-header">Sentiment</div>
-          <div class="box-content">${parsed.SENTIMENT.trim().replace(/\\n/g, '<br>')}</div>
+          <div class="box-content">${formatContent(parsed.SENTIMENT)}</div>
         </div>
       ` : ''}
       ${parsed.NEWS.trim() ? `
         <div class="analysis-box news-box">
           <div class="box-header">News</div>
-          <div class="box-content">${parsed.NEWS.trim().replace(/\\n/g, '<br>')}</div>
+          <div class="box-content">${formatContent(parsed.NEWS)}</div>
         </div>
       ` : ''}
       ${parsed.TECHNICALS.trim() ? `
         <div class="analysis-box technicals-box">
           <div class="box-header">Price & Technicals</div>
-          <div class="box-content">${parsed.TECHNICALS.trim().replace(/\\n/g, '<br>')}</div>
+          <div class="box-content">${formatContent(parsed.TECHNICALS)}</div>
         </div>
       ` : ''}
       ${parsed.CONCLUSION.trim() ? `
         <div class="analysis-box conclusion-box">
           <div class="box-header">Overall Conclusion</div>
-          <div class="box-content">${parsed.CONCLUSION.trim().replace(/\\n/g, '<br>')}</div>
+          <div class="box-content">${formatContent(parsed.CONCLUSION)}</div>
         </div>
       ` : ''}
     </div>

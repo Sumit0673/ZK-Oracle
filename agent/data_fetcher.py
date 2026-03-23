@@ -39,7 +39,7 @@ def get_mock_news(asset: str) -> dict:
     return {
         "asset": asset,
         "sentiment": sentiment,
-        "headlines": random.sample(headlines_dict[sentiment], 5),
+        "headlines": [{"title": h, "link": "https://example.com/news"} for h in random.sample(headlines_dict[sentiment], 5)],
         "source": "Mock News Engine",
         "timestamp": int(datetime.now(timezone.utc).timestamp())
     }
@@ -211,11 +211,23 @@ def fetch_news(asset: str = "bitcoin") -> dict:
         headlines = []
         for item in all_items:
             title = item.find('title')
+            link = item.find('link')
             if title is not None and title.text:
-                # Google news titles often have " - SourceName" appended. We keep it!
-                headlines.append(title.text)
+                headlines.append({
+                    "title": title.text,
+                    "link": link.text if link is not None else url
+                })
                 
-        final_headlines = headlines[:5]
+        # Prioritize asset-specific headlines
+        asset_lower = asset.lower()
+        asset_headlines = [h for h in headlines if asset_lower in h["title"].lower()]
+        
+        # Fill the rest with general top news
+        # We use a set of titles to avoid duplicates efficiently
+        seen_titles = {h["title"] for h in asset_headlines}
+        remaining_headlines = [h for h in headlines if h["title"] not in seen_titles]
+        
+        final_headlines = (asset_headlines + remaining_headlines)[:5]
         
         if len(final_headlines) == 0:
             return get_mock_news(asset)
@@ -251,5 +263,6 @@ if __name__ == "__main__":
     print("\nFetching News & Sentiment...")
     news = fetch_news("bitcoin")
     print(f"  Sentiment: {news['sentiment']}")
-    for i, headline in enumerate(news['headlines']):
-        print(f"  Headline {i+1}: {headline}")
+    for i, item in enumerate(news['headlines']):
+        print(f"  Headline {i+1}: {item['title']}")
+        print(f"  Link: {item['link']}")
