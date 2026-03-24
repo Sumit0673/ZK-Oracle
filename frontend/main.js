@@ -207,16 +207,16 @@ function renderAnalysisBoxes(analysisText) {
   
   const formatContent = (text) => {
     if (!text) return '';
-    // Replace "Link: URL" with a button-like <a> tag
-    const linkRegex = /Link:\s+(https?:\/\/[^\s]+)/g;
-    const urlRegex = /(https?:\/\/[^\s]+)/g;
     
     return text.trim()
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(linkRegex, '<a href="$1" target="_blank" class="source-button">View Source <span>↗</span></a>')
-      .replace(urlRegex, (url) => {
-        // Only replace if it wasn't already caught by linkRegex
-        if (text.includes('Link: ' + url)) return ''; 
+      // Consolidate URL handling: match "Link: URL" OR just "URL"
+      .replace(/(Link:\s+)?(https?:\/\/[^\s]+)/g, (match, prefix, url) => {
+        // If it has the prefix OR it's a long news URL, make it a button
+        const isLongNewsUrl = url.includes('news.google.com') || url.length > 60;
+        if (prefix || isLongNewsUrl) {
+          return `<a href="${url}" target="_blank" class="source-button">View Source <span>↗</span></a>`;
+        }
         return `<a href="${url}" target="_blank" class="news-link">[Link]</a>`;
       })
       .replace(/\n\s*[\*\-]\s+/g, '<br>• ') // Convert bullet points
