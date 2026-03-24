@@ -136,6 +136,7 @@ Always follow this workflow:
 (List the Top 5 headlines as a clear bulleted list. Each item MUST be on a new line with double spacing between them. For EVERY headline, include:
 - **Title** (Source)
 - Link: URL)
+(CRITICAL: The URL MUST be preceded by "Link: " to render correctly in the UI)
 [TECHNICALS]
 (your technical analysis)
 [CONCLUSION]

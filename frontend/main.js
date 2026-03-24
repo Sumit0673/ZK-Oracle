@@ -207,12 +207,19 @@ function renderAnalysisBoxes(analysisText) {
   
   const formatContent = (text) => {
     if (!text) return '';
-    // Replace URLs with <a> tags
+    // Replace "Link: URL" with a button-like <a> tag
+    const linkRegex = /Link:\s+(https?:\/\/[^\s]+)/g;
     const urlRegex = /(https?:\/\/[^\s]+)/g;
+    
     return text.trim()
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(urlRegex, (url) => `<a href="${url}" target="_blank" class="news-link">${url}</a>`)
-      .replace(/\n\s*[\*\-]\s+/g, '<br>• ') // Convert bullet points (* or -)
+      .replace(linkRegex, '<a href="$1" target="_blank" class="source-button">View Source <span>↗</span></a>')
+      .replace(urlRegex, (url) => {
+        // Only replace if it wasn't already caught by linkRegex
+        if (text.includes('Link: ' + url)) return ''; 
+        return `<a href="${url}" target="_blank" class="news-link">[Link]</a>`;
+      })
+      .replace(/\n\s*[\*\-]\s+/g, '<br>• ') // Convert bullet points
       .replace(/\n(\d+)\.\s+/g, '<br>$1. ') // Handle numbered lists
       .replace(/\n/g, '<br>');
   };
